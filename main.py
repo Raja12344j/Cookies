@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 form_html = '''
 <form method="post">
-  Facebook की पूरी कुकीज़ एक साथ पेस्ट करें:<br>
+  Facebook की पूरी कुकीज़ यहाँ पेस्ट करें:<br>
   <textarea name="cookies" rows="6" cols="60" required></textarea><br><br>
   
   Thread ID:<br>
@@ -18,7 +18,7 @@ form_html = '''
   आपका नाम:<br>
   <input name="name" type="text" required><br><br>
   
-  मैसेज भेजने का समयांतराल (सेकंड में):<br>
+  Message भेजने का समयांतराल (सेकंड में):<br>
   <input name="interval" type="number" value="10" required><br><br>
   
   <input type="submit" value="Run करें">
@@ -34,16 +34,19 @@ def index():
         interval = int(request.form['interval'])
 
         send_facebook_messages(cookies_str, thread_id, name, interval)
-        return "बोट कुकीज़ के साथ शुरू हो गया है! टर्मिनल या लॉग देखें।"
+        return "बॉट कुकीज़ के साथ शुरू हो गया है! टर्मिनल देखें।"
     return render_template_string(form_html)
 
 def send_facebook_messages(cookies_str, thread_id, name, interval):
     options = webdriver.ChromeOptions()
+    # Chrome binary path सेट करें, यह path Render जैसे Linux क्लाउड प्लेटफॉर्म के लिए है
+    options.binary_location = "/usr/bin/chromium-browser"
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # Browser GUI नहीं देखना हो तो नीचे वाली लाइन अनकमेंट करें
-    # options.add_argument("--headless")
 
-    # Chrome Driver इनिशियलाइजेशन
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     driver.get("https://facebook.com")
@@ -53,14 +56,14 @@ def send_facebook_messages(cookies_str, thread_id, name, interval):
         try:
             driver.add_cookie(cookie)
         except Exception as e:
-            print("Cookie सेट करते समय Error:", e)
+            print("Cookie सेट करते समय त्रुटि:", e)
 
     driver.refresh()
     time.sleep(5)
 
-    print(f"{name} के लिए थ्रेड {thread_id} पर हर {interval} सेकंड मेसेज भेजने को तैयार।")
+    print(f"{name} के लिए थ्रेड {thread_id} पर हर {interval} सेकंड में मैसेज भेजने को तैयार।")
 
-    # यहाँ मैसेजिंग लॉजिक डालें
+    # Selenium से मैसेजिंग का तरीका यहाँ जोड़ें
 
     driver.quit()
 
