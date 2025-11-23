@@ -3,12 +3,13 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import time
+import os
 
 app = Flask(__name__)
 
-html_form = '''
+form_html = '''
 <form method="post">
-  Facebook की पूरी Cookies यहाँ पेस्ट करें:<br>
+  Facebook की पूरी कुकीज़ एक साथ पेस्ट करें:<br>
   <textarea name="cookies" rows="6" cols="60" required></textarea><br><br>
   
   Thread ID:<br>
@@ -17,10 +18,10 @@ html_form = '''
   आपका नाम:<br>
   <input name="name" type="text" required><br><br>
   
-  Message भेजने का अंतराल (सेकंड में):<br>
+  मैसेज भेजने का समयांतराल (सेकंड में):<br>
   <input name="interval" type="number" value="10" required><br><br>
   
-  <input type="submit" value="रन करें">
+  <input type="submit" value="Run करें">
 </form>
 '''
 
@@ -33,15 +34,18 @@ def index():
         interval = int(request.form['interval'])
 
         send_facebook_messages(cookies_str, thread_id, name, interval)
-        return "बॉट कूकीज़ के साथ शुरू हो गया है! टर्मिनल देखें।"
-    return render_template_string(html_form)
+        return "बोट कुकीज़ के साथ शुरू हो गया है! टर्मिनल या लॉग देखें।"
+    return render_template_string(form_html)
 
 def send_facebook_messages(cookies_str, thread_id, name, interval):
     options = webdriver.ChromeOptions()
-    # UI दिखाना चाहते हैं तो नीचे वाली लाइन हटा दें
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    # Browser GUI नहीं देखना हो तो नीचे वाली लाइन अनकमेंट करें
     # options.add_argument("--headless")
+
+    # Chrome Driver इनिशियलाइजेशन
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    
+
     driver.get("https://facebook.com")
     time.sleep(3)
 
@@ -49,16 +53,15 @@ def send_facebook_messages(cookies_str, thread_id, name, interval):
         try:
             driver.add_cookie(cookie)
         except Exception as e:
-            print("Cookie सेट में त्रुटि:", e)
-    
+            print("Cookie सेट करते समय Error:", e)
+
     driver.refresh()
     time.sleep(5)
 
-    print(f"{name} के लिए थ्रेड {thread_id} पर हर {interval} सेकंड में मैसेज भेजने के लिए लॉगिन हो गया।")
+    print(f"{name} के लिए थ्रेड {thread_id} पर हर {interval} सेकंड मेसेज भेजने को तैयार।")
 
-    # यहां अपने Selenium लॉजिक से मैसेज भेजने का कोड डालें
+    # यहाँ मैसेजिंग लॉजिक डालें
 
-    # Demo के लिए बंद कर रहे हैं, आप बाद में अपनी जरूरत के अनुसार हैंडल करें
     driver.quit()
 
 def parse_cookies(cookies_str):
@@ -70,4 +73,5 @@ def parse_cookies(cookies_str):
     return cookies
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
