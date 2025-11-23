@@ -2,14 +2,14 @@ from flask import Flask, request, render_template_string
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import time
 import os
+import time
 
 app = Flask(__name__)
 
 form_html = '''
-<form method="post">
-  Facebook की पूरी कुकीज़ यहाँ पेस्ट करें:<br>
+<form method="post" enctype="multipart/form-data">
+  Facebook Cookies (एक साथ पेस्ट करें):<br>
   <textarea name="cookies" rows="6" cols="60" required></textarea><br><br>
   
   Thread ID:<br>
@@ -20,6 +20,9 @@ form_html = '''
   
   Message भेजने का समयांतराल (सेकंड में):<br>
   <input name="interval" type="number" value="10" required><br><br>
+  
+  Message फाइल चुनें (एक लाइन = एक मैसेज):<br>
+  <input type="file" name="msgfile"><br><br>
   
   <input type="submit" value="Run करें">
 </form>
@@ -32,38 +35,46 @@ def index():
         thread_id = request.form['thread_id']
         name = request.form['name']
         interval = int(request.form['interval'])
+        msgfile = request.files.get('msgfile')
 
-        send_facebook_messages(cookies_str, thread_id, name, interval)
-        return "बॉट कुकीज़ के साथ शुरू हो गया है! टर्मिनल देखें।"
+        messages = []
+        if msgfile:
+            messages = msgfile.read().decode('utf-8').splitlines()
+
+        run_facebook_bot(cookies_str, thread_id, name, interval, messages)
+        return f"Bot चल रहा है। {len(messages)} मैसेज फाइल से लिए गए। टर्मिनल देखें।"
     return render_template_string(form_html)
 
-def send_facebook_messages(cookies_str, thread_id, name, interval):
+def run_facebook_bot(cookies_str, thread_id, name, interval, messages):
     options = webdriver.ChromeOptions()
-    # Chrome binary path सेट करें, यह path Render जैसे Linux क्लाउड प्लेटफॉर्म के लिए है
     options.binary_location = "/usr/bin/chromium-browser"
     options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
     driver.get("https://facebook.com")
     time.sleep(3)
 
+    # Add cookies from the string
     for cookie in parse_cookies(cookies_str):
         try:
             driver.add_cookie(cookie)
         except Exception as e:
-            print("Cookie सेट करते समय त्रुटि:", e)
+            print(f"Cookie setting error: {e}")
 
     driver.refresh()
     time.sleep(5)
 
-    print(f"{name} के लिए थ्रेड {thread_id} पर हर {interval} सेकंड में मैसेज भेजने को तैयार।")
+    print(f"Logged in with cookies. Ready to send {len(messages)} messages to thread {thread_id} from {name} every {interval} seconds.")
 
-    # Selenium से मैसेजिंग का तरीका यहाँ जोड़ें
+    # Example: Loop through messages and print (instead of sending)
+    for msg in messages:
+        print(f"Sending message: {msg}")
+        # Selenium logic to send message goes here
+        time.sleep(interval)
 
     driver.quit()
 
