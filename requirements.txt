@@ -1,1 +1,3 @@
-pip install flask selenium webdriver-manager
+flask
+selenium
+webdriver-manager
